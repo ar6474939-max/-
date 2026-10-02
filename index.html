@@ -1017,24 +1017,37 @@ gateTumvan.addEventListener("click",function(){
     apiKey:"AIzaSyDo87eqZmevPKyYvZ5pnMJwDxFnWHoeMhU",
     authDomain:"tumvan-8a967.firebaseapp.com",
     projectId:"tumvan-8a967",
-    appId:"1:845420959373:web:2df120124eaa3c0a73b4c4"
+    storageBucket:"tumvan-8a967.firebasestorage.app",
+    messagingSenderId:"845420959373",
+    appId:"1:845420959373:web:2df120124eaa3c0a73b4c4",
+    measurementId:"G-RXSWTPQF3R"
   };
   const $c=id=>document.getElementById(id);
   const api=$c("cloudApiKey"), authDomain=$c("cloudAuthDomain"), projectId=$c("cloudProjectId"), appId=$c("cloudAppId");
   const status=$c("cloudStatus");
-  const cfg=()=>{try{return JSON.parse(localStorage.getItem(CK)||"null")}catch(e){return null}};
   const setStatus=(t,ok)=>{if(status){status.textContent=t;status.style.color=ok?"#176b35":"#7a3b00"}};
-  function fill(){
-    let c=cfg();
-    if(!c){
-      c=DEFAULT_TUMVAN_FIREBASE_CONFIG;
-      localStorage.setItem(CK,JSON.stringify(c));
+  function cfg(){
+    // This Tumvan build uses one fixed Firebase project. If an old/truncated
+    // key was saved on the phone, replace it automatically with the verified config.
+    let saved=null;
+    try{saved=JSON.parse(localStorage.getItem(CK)||"null")}catch(e){}
+    const valid=saved && saved.apiKey===DEFAULT_TUMVAN_FIREBASE_CONFIG.apiKey &&
+      saved.authDomain===DEFAULT_TUMVAN_FIREBASE_CONFIG.authDomain &&
+      saved.projectId===DEFAULT_TUMVAN_FIREBASE_CONFIG.projectId &&
+      saved.appId===DEFAULT_TUMVAN_FIREBASE_CONFIG.appId;
+    if(!valid){
+      saved={...DEFAULT_TUMVAN_FIREBASE_CONFIG};
+      localStorage.setItem(CK,JSON.stringify(saved));
     }
-    if(api)api.value=c.apiKey||"";
-    if(authDomain)authDomain.value=c.authDomain||"";
-    if(projectId)projectId.value=c.projectId||"";
-    if(appId)appId.value=c.appId||"";
-    if(c.projectId)setStatus("☁️ Tumvan Firebase तैयार है। अब ‘अभी Sync करें’ दबाकर Cloud Sync शुरू करें।",true);
+    return saved;
+  }
+  function fill(){
+    const c=cfg();
+    if(api)api.value=c.apiKey;
+    if(authDomain)authDomain.value=c.authDomain;
+    if(projectId)projectId.value=c.projectId;
+    if(appId)appId.value=c.appId;
+    setStatus("☁️ Tumvan Firebase तैयार है। अब ‘अभी Sync करें’ दबाकर Cloud Sync शुरू करें।",true);
   }
   function getData(){
     const keys=["anokhi_simple_products_v4","anokhi_simple_offers_v4","anokhi_simple_sales_v4","anokhi_credit_repayments_v1","anokhi_company_assignments_v1"];
@@ -1042,19 +1055,24 @@ gateTumvan.addEventListener("click",function(){
   }
   async function sync(){
     const c=cfg();
-    if(!c || !c.apiKey || !c.projectId || !c.appId || !c.authDomain){setStatus("⚠️ पहले Firebase Cloud की चारों मुख्य जानकारी भरकर सेव करें।",false);return;}
     if(!navigator.onLine){setStatus("📴 इंटरनेट नहीं है। डेटा मोबाइल में सुरक्षित है; इंटरनेट आते ही फिर Sync कर सकते हैं।",false);return;}
     try{
       if(!window.firebase){throw new Error("Cloud library लोड नहीं हुई।")}
       let app;
-      try{app=firebase.app("tumvan")}catch(e){app=firebase.initializeApp({apiKey:c.apiKey,authDomain:c.authDomain,projectId:c.projectId,appId:c.appId},"tumvan")}
+      try{app=firebase.app("tumvan")}catch(e){app=null}
+      if(app){
+        if(String(app.options.apiKey||"")!==c.apiKey || String(app.options.projectId||"")!==c.projectId){
+          try{await app.delete()}catch(e){}
+          app=null;
+        }
+      }
+      if(!app){app=firebase.initializeApp(c,"tumvan")}
       const auth=app.auth();
       if(!auth.currentUser) await auth.signInAnonymously();
       const db=app.firestore();
       const data=getData();
       const now=new Date().toISOString();
       const root=db.collection("tumvanNetwork").doc("master");
-      // Small settings are stored together; sales/repayments are chunked to avoid oversized documents.
       await root.set({products:data.anokhi_simple_products_v4,offers:data.anokhi_simple_offers_v4,assignments:data.anokhi_company_assignments_v1,updatedAt:now},{merge:true});
       const chunk=(arr,n)=>{const r=[];for(let i=0;i<arr.length;i+=n)r.push(arr.slice(i,i+n));return r};
       const salesChunks=chunk(data.anokhi_simple_sales_v4,150);
@@ -1063,12 +1081,21 @@ gateTumvan.addEventListener("click",function(){
       for(let i=0;i<repChunks.length;i++) await root.collection("repaymentChunks").doc(String(i).padStart(6,"0")).set({items:repChunks[i],updatedAt:now});
       localStorage.setItem("tumvan_cloud_last_sync",now);
       setStatus("✅ Cloud Sync सफल: "+new Date(now).toLocaleString("hi-IN"),true);
-    }catch(e){setStatus("❌ Cloud Sync नहीं हुआ: "+(e.message||e),false)}
+    }catch(e){
+      const msg=String(e&&e.message||e);
+      if(msg.includes("api-key-not-valid") || msg.toLowerCase().includes("api key not valid")){
+        localStorage.setItem(CK,JSON.stringify(DEFAULT_TUMVAN_FIREBASE_CONFIG));
+        setStatus("❌ Firebase ने API Key स्वीकार नहीं की। ऐप में सही Key अपने-आप रख दी गई है। पेज एक बार Refresh करके फिर Sync करें।",false);
+      }else{
+        setStatus("❌ Cloud Sync नहीं हुआ: "+msg,false);
+      }
+    }
   }
   $c("cloudSaveConfig")?.addEventListener("click",()=>{
-    const c={apiKey:(api?.value||"").trim(),authDomain:(authDomain?.value||"").trim(),projectId:(projectId?.value||"").trim(),appId:(appId?.value||"").trim()};
-    if(!c.apiKey||!c.authDomain||!c.projectId||!c.appId){setStatus("⚠️ API Key, Auth Domain, Project ID और App ID चारों भरें।",false);return;}
-    localStorage.setItem(CK,JSON.stringify(c));setStatus("☁️ Cloud सेटिंग सेव हो गई। अब 'अभी Sync करें' दबा सकते हैं।",true);
+    // Keep the verified Tumvan project as the single source of truth.
+    localStorage.setItem(CK,JSON.stringify(DEFAULT_TUMVAN_FIREBASE_CONFIG));
+    fill();
+    setStatus("☁️ Tumvan Firebase सेटिंग सुरक्षित रूप से सेव हो गई। अब 'अभी Sync करें' दबा सकते हैं।",true);
   });
   window.tumvanCloudSync=sync;
   window.tumvanCloudSyncNow=async function(){
@@ -1076,80 +1103,13 @@ gateTumvan.addEventListener("click",function(){
     await sync();
     return false;
   };
-  $c("cloudSyncNow")?.addEventListener("click",function(e){e.preventDefault();window.tumvanCloudSyncNow();});
-  window.addEventListener("online",()=>{if(cfg()) sync()});
+  $c("cloudSyncNow")?.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();window.tumvanCloudSyncNow();});
+  window.addEventListener("online",()=>{sync()});
   fill();
 })();
 </script>
-<section id="tumvanCloud10Shop" style="margin:24px 0;padding:18px;border:2px solid #198754;border-radius:16px;background:#f5fff9;">
-  <h2 style="margin-top:0;">☁️ Tumvan Cloud — 10 दुकानों की तैयारी</h2>
-  <p><b>स्थिति:</b> Tumvan Firebase पहले से सेट है। नीचे की जानकारी आपके Tumvan Firebase Project की है।</p>
-  <div style="display:grid;gap:10px;max-width:620px;">
-    <label>Firebase API Key
-      <input id="firebaseApiKey" type="text" placeholder="Firebase Console से API Key" style="width:100%;padding:10px;">
-    </label>
-    <label>Firebase Auth Domain
-      <input id="firebaseAuthDomain" type="text" placeholder="your-project.firebaseapp.com" style="width:100%;padding:10px;">
-    </label>
-    <label>Firebase Project ID
-      <input id="firebaseProjectId" type="text" placeholder="your-project-id" style="width:100%;padding:10px;">
-    </label>
-    <label>Firebase Storage Bucket
-      <input id="firebaseStorageBucket" type="text" placeholder="your-project.appspot.com" style="width:100%;padding:10px;">
-    </label>
-    <label>Firebase App ID
-      <input id="firebaseAppId" type="text" placeholder="1:...:web:..." style="width:100%;padding:10px;">
-    </label>
-    <button type="button" onclick="saveTumvanCloud10Shop()" style="padding:13px;border:0;border-radius:10px;background:#198754;color:white;font-weight:700;">
-      ☁️ Cloud सेटिंग सेव करें
-    </button>
-    <div id="tumvanCloudStatus" style="font-weight:700;">Cloud अभी कनेक्ट नहीं है।</div>
-  </div>
-  <hr>
-  <h3>🏪 10 दुकानों की संरचना</h3>
-  <div id="tumvanTenShops" style="display:grid;gap:7px;"></div>
-</section>
-<script>
-(function(){
-  const KEY='tumvanFirebaseConfig_v1';
-  window.renderTumvanTenShops = function(){
-    const el=document.getElementById('tumvanTenShops');
-    if(!el) return;
-    const names=[];
-    for(let i=1;i<=10;i++) names.push(
-      '<div style="padding:10px;background:white;border:1px solid #ddd;border-radius:8px;">🏪 दुकान '+i+' — Tumvan नेटवर्क</div>'
-    );
-    el.innerHTML=names.join('');
-    const cfg=localStorage.getItem(KEY);
-    const st=document.getElementById('tumvanCloudStatus');
-    if(st) st.textContent=cfg ? '☁️ Tumvan Firebase सेटिंग सेव है।' : 'Cloud अभी कनेक्ट नहीं है।';
-  };
-  window.saveTumvanCloud10Shop = function(){
-    const cfg={
-      apiKey:document.getElementById('firebaseApiKey').value.trim(),
-      authDomain:document.getElementById('firebaseAuthDomain').value.trim(),
-      projectId:document.getElementById('firebaseProjectId').value.trim(),
-      storageBucket:document.getElementById('firebaseStorageBucket').value.trim(),
-      appId:document.getElementById('firebaseAppId').value.trim()
-    };
-    if(!cfg.apiKey || !cfg.authDomain || !cfg.projectId || !cfg.appId){
-      alert('कृपया Firebase की जरूरी जानकारी भरें।');
-      return;
-    }
-    localStorage.setItem(KEY,JSON.stringify(cfg));
-    renderTumvanTenShops();
-    alert('Cloud सेटिंग इस डिवाइस में सेव हो गई है।');
-  };
-  document.addEventListener('DOMContentLoaded',function(){
-    const c={apiKey:'AIzaSyDo87eqZmevPKyYvZ5pnMJwDxFnWHoeMhU',authDomain:'tumvan-8a967.firebaseapp.com',projectId:'tumvan-8a967',appId:'1:845420959373:web:2df120124eaa3c0a73b4c4'};
-    ['firebaseApiKey','firebaseAuthDomain','firebaseProjectId','firebaseAppId'].forEach((id,i)=>{
-      const el=document.getElementById(id); if(!el)return;
-      el.value=[c.apiKey,c.authDomain,c.projectId,c.appId][i];
-    });
-    renderTumvanTenShops();
-  });
-})();
-</script>
+<!-- Tumvan Cloud Sync uses the single Cloud panel above. Duplicate legacy config removed. -->
+
 
 </body>
 </html>
