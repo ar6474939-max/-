@@ -1,0 +1,1155 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>अनोखी अपनी दुकान — सरल बिलिंग</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#eef7f0;color:#173b25;font-family:Arial,"Noto Sans Devanagari",sans-serif}
+header{background:#08783a;color:#fff;text-align:center;padding:14px}
+h1{font-size:24px;margin:0}.sub{font-size:13px;margin-top:4px}
+nav{display:flex;gap:6px;background:#fff;padding:8px;position:sticky;top:0;z-index:20;box-shadow:0 2px 8px #0002}
+button{min-height:46px;border:0;border-radius:12px;padding:10px 14px;font-size:16px;font-weight:800;touch-action:manipulation}
+.tab{flex:1;background:#fff;border:1px solid #c8d9cc;color:#17552e}
+.active,.green{background:#08783a;color:#fff}
+.page{padding:10px}.card{background:#fff;border-radius:17px;padding:14px;margin-bottom:10px;box-shadow:0 2px 10px #0001}
+h2{font-size:20px;margin:0 0 10px}
+label{font-weight:800;display:block;margin:8px 0 5px}
+input,select{width:100%;padding:12px;border:1px solid #cbd9ce;border-radius:10px;font-size:16px;background:#fff}
+.products{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.p{border:1px solid #c9dbce;border-radius:13px;padding:10px;background:#fbfefb}
+.p b{font-size:17px}.price{color:#587064;margin:4px 0 7px}
+.q{display:flex;align-items:center;gap:8px}.q button{min-height:40px;padding:6px 13px}.q span{min-width:24px;text-align:center;font-size:18px}
+.bill{margin-top:10px}.line{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #eee}
+.total{font-size:23px;font-weight:900;text-align:right;margin:10px 0}
+.notice{background:#eef8f0;border:1px solid #c6dfca;padding:10px;border-radius:10px;margin:8px 0}
+.hidden{display:none!important}
+.offerlist{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.offer{border:1px solid #cbdccd;padding:10px;border-radius:10px;background:white}
+.offer input{width:auto}
+.choice{text-align:center;font-size:18px;font-weight:900;color:#08783a;margin:7px}
+.wheel{position:relative;max-width:390px;margin:12px auto}
+.wheel canvas{width:100%;height:auto;display:block}
+.pointer{position:absolute;top:-3px;left:50%;transform:translateX(-50%);border-left:18px solid transparent;border-right:18px solid transparent;border-top:32px solid #d92d20;z-index:3}
+.spin{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:108px;height:108px;border-radius:50%;background:#fff;border:9px solid #08783a;color:#173b25;font-size:16px;z-index:4}
+.spin:disabled{opacity:.6}
+.result{text-align:center;background:#fff4c9;border:2px solid #d5b23b;padding:12px;border-radius:12px;font-size:19px;font-weight:900}
+.owner-row{display:grid;grid-template-columns:1.4fr .7fr .7fr .6fr;gap:5px;margin:6px 0}
+.owner-row input{padding:9px;font-size:14px;min-width:0;box-sizing:border-box}
+.offer-editor-row{display:grid;grid-template-columns:minmax(0,1fr) 112px;gap:8px;align-items:center;margin:8px 0}.offer-editor-row input{width:100%;min-width:0}.offer-editor-row .danger{width:112px;min-height:46px}.product-editor-scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px}.product-editor-scroll .owner-row{min-width:590px}.product-editor-scroll .owner-row input[type="number"]{width:78px;min-width:78px}.product-editor-scroll .owner-row input[aria-label="सामान"]{width:145px;min-width:145px}.danger{background:#b42318;color:#fff}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:7px}.stat{background:#f5faf6;padding:10px;border-radius:10px;border:1px solid #d6e4d9}.stat b{display:block;font-size:20px}
+.small{font-size:13px;color:#617267;line-height:1.6}
+.column-head{display:grid;grid-template-columns:1.4fr .7fr .7fr .6fr;gap:5px;margin:10px 0;font-weight:900;color:#08783a}
+.empty{padding:12px;background:#f7faf8;border-radius:10px;color:#667}
+@media(max-width:420px){.products{grid-template-columns:1fr 1fr}.owner-row,.column-head{grid-template-columns:.45fr 1.35fr .75fr .75fr .75fr .7fr .75fr}.owner-row input{min-width:0}}
+table th,table td{padding:7px;border-bottom:1px solid #dce8df;text-align:left;white-space:nowrap}
+.readonly-lock{background:#eef6f0!important;font-weight:800} .locked-nav{opacity:.95}
+</style>
+</head>
+<body>
+<header><h1>🛒 अनोखी अपनी दुकान</h1><div class="sub">सरल बिलिंग + उपहार चक्र — पूरी तरह Offline भी चलेगा</div></header>
+<nav>
+<button id="navSale" class="tab active" type="button">🔐 दुकान मैनेजर</button>
+<button id="navOffer" class="tab" type="button">🎁 ऑफर</button>
+<button id="navOwner" class="tab" type="button">🔐 Tumvan</button>
+</nav>
+
+<section id="pageSale" class="page">
+<div class="card">
+<h2>1️⃣ ग्राहक का सामान चुनें</h2>
+<div class="notice" style="font-weight:900">🔒 दुकान नंबर और दुकान मैनेजर की जानकारी केवल <b>Tumvan कंपनी</b> तय करेगी।</div>
+<label>आवंटित दुकान<input id="shopDisplay" value="Tumvan से दुकान आवंटित नहीं है" readonly></label>
+<label>दुकान मैनेजर का नाम<input id="employee" value="मैनेजर 1" readonly></label>
+<div class="small">दुकान मैनेजर अपनी ओर से दुकान नंबर नहीं बदल सकता।</div>
+<label>सामान खोजें</label>
+<input id="productSearch" placeholder="जैसे आटा, तेल, साबुन..." autocomplete="off">
+<div id="productGrid" class="products"></div>
+</div>
+<div class="card bill">
+<h2>2️⃣ बिल देखें</h2>
+<div id="cart"></div>
+<div id="emptyCart" class="empty">अभी कोई सामान नहीं चुना है। ऊपर से सामान के सामने + दबाएँ।</div>
+<div class="total">कुल ₹<span id="total">0</span></div>
+<label>भुगतान का तरीका<select id="payment"><option value="नकद">💵 नकद</option><option value="UPI">📱 UPI</option><option value="उधारी">📒 उधारी</option></select></label>
+<div id="creditCustomerBox" class="notice hidden">
+<label>उधारी ग्राहक का नाम<input id="creditCustomerName" placeholder="जैसे रामलाल"></label>
+<label>मोबाइल नंबर (वैकल्पिक)<input id="creditCustomerPhone" inputmode="numeric" maxlength="10" placeholder="10 अंकों का मोबाइल"></label>
+</div>
+<button id="paidButton" class="green" style="width:100%;margin-top:8px" type="button">✅ पैसा मिल गया — आगे बढ़ें</button>
+</div>
+
+<div class="card">
+<h2>📊 आज की दुकान की स्थिति</h2>
+<div class="notice">दुकान मैनेजर यहाँ अपनी आवंटित दुकान की आज की बिक्री देख सकता है।</div>
+<div class="stats">
+<div class="stat">🧾 बिल<b id="empShopBills">0</b></div>
+<div class="stat">💰 बिक्री<b>₹<span id="empShopSales">0</span></b></div>
+<div class="stat">💵 नगद<b>₹<span id="empShopCash">0</span></b></div>
+<div class="stat">📱 UPI<b>₹<span id="empShopUpi">0</span></b></div>
+<div class="stat">📒 उधारी<b>₹<span id="empShopCredit">0</span></b></div>
+<div class="stat">🏆 विजेता<b id="empShopWinners">0</b></div>
+</div>
+<div class="notice" style="margin-top:10px">
+<b>मेरी आज की बिक्री:</b> ₹<span id="mySales">0</span> &nbsp; | &nbsp;
+<b>मेरे बिल:</b> <span id="myBills">0</span>
+</div>
+</div>
+
+<div class="card">
+<h2>📒 उधारी खाता और वसूली</h2>
+<div class="notice">उधारी में सामान देने पर ग्राहक का नाम लिखें। पैसा वापस मिलने पर नीचे से <b>वसूली दर्ज</b> करें। बाकी उधारी अपने आप बचेगी।</div>
+<div id="creditAccounts" class="small">कोई बाकी उधारी नहीं है।</div>
+<label>ग्राहक चुनें<select id="creditCustomerSelect"></select></label>
+<label>वापस मिली राशि<input id="creditRepayAmount" type="number" min="1" inputmode="numeric" placeholder="₹ राशि"></label>
+<button id="recordCreditRepayment" class="green" style="width:100%;margin-top:8px" type="button">✅ उधारी वापस मिली — दर्ज करें</button>
+</div>
+
+<div class="card">
+<h2>📦 आज कितना सामान बिका?</h2>
+<div class="small">आज की तारीख में इस दुकान पर हर सामान की कुल बिकी हुई मात्रा और बिक्री राशि।</div>
+<div id="managerProductSummary" style="overflow:auto;margin-top:8px"></div>
+</div>
+</section>
+
+<section id="pageOffer" class="page hidden">
+<div class="card">
+<h2>3️⃣ ग्राहक अपना उपहार चुनें</h2>
+<div class="notice">ग्राहक नीचे से <b>एक</b> उपहार चुने। फिर बीच में <b>चक्र घुमाएँ</b> दबाएँ।</div>
+<div id="offerList" class="offerlist"></div>
+<div id="choiceText" class="choice">उपहार अभी नहीं चुना</div>
+<div class="wheel">
+<div class="pointer" aria-hidden="true"></div>
+<canvas id="wheelCanvas" width="700" height="700"></canvas>
+<button id="spinButton" class="spin" type="button">🎡<br>चक्र<br>घुमाएँ</button>
+</div>
+<div id="result" class="result hidden" aria-live="polite"></div>
+<button id="nextSale" class="green" style="width:100%;margin-top:8px" type="button">➕ अगला ग्राहक</button>
+</div>
+</section>
+
+<section id="pageOwner" class="page hidden">
+<div class="card">
+<h2>🔐 Tumvan कंपनी कंट्रोल</h2>
+<div class="notice"><b>यह हिस्सा केवल Tumvan कंपनी के लिए है।</b><br>कंपनी ही दुकान नंबर और दुकान मैनेजर आवंटित करेगी। मैनेजर यहाँ बदलाव नहीं कर सकता।</div>
+<div class="card" style="margin-top:10px;background:#f8fcf9;border:1px solid #d6e8db">
+<h3 style="margin-top:0">🏪 दुकान और मैनेजर आवंटन</h3>
+<label>दुकान नंबर<select id="assignShop"></select></label>
+<label>दुकान मैनेजर का नाम<input id="assignEmployee" placeholder="जैसे राम, मोहन"></label>
+<label>दुकान मैनेजर लॉगिन कोड<input id="assignCode" inputmode="numeric" maxlength="6" placeholder="4 से 6 अंक"></label>
+<button id="saveAssignment" class="green" style="width:100%" type="button">🔒 दुकान और मैनेजर लॉक करके सेव करें</button>
+<div id="assignmentStatus" class="notice" style="margin-top:8px">अभी कोई आवंटन नहीं।</div>
+<div style="overflow:auto;margin-top:12px">
+<table style="width:100%;border-collapse:collapse;font-size:13px">
+<thead><tr><th>दुकान</th><th>दुकान मैनेजर</th><th>स्थिति</th></tr></thead>
+<tbody id="assignmentTable"></tbody>
+</table></div>
+</div>
+<div class="stats">
+<div class="stat">आज के बिल<b id="todayBills">0</b></div>
+<div class="stat">आज की बिक्री<b>₹<span id="todaySales">0</span></b></div>
+<div class="stat">🏆 आज के विजेता<b id="todayWinners">0</b><span class="small" style="display:block;margin-top:3px">कुल विजेता राशि: ₹<span id="todayWinnerValue">0</span></span></div>
+<div class="stat">आज के ऑफर<b id="todayOffers">0</b></div>
+</div>
+</div>
+<div class="card">
+<h2>💰 आज का भुगतान सारांश</h2>
+<div class="stats">
+<div class="stat">💵 नगद<b>₹<span id="cashTotal">0</span></b></div>
+<div class="stat">📱 UPI<b>₹<span id="upiTotal">0</span></b></div>
+<div class="stat">📒 उधारी<b>₹<span id="creditTotal">0</span></b></div>
+<div class="stat">🔄 बाकी उधारी<b>₹<span id="outstandingTotal">0</span></b></div>
+
+</div>
+</div>
+<div class="card">
+<h2>🏪 10 दुकानों की आज की रिपोर्ट</h2>
+<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">
+<thead><tr><th>दुकान</th><th>बिल</th><th>कुल बिक्री</th><th>नगद</th><th>UPI</th><th>उधारी</th><th>विजेता</th><th>विजेता राशि</th><th>दुकान का कुल</th></tr></thead>
+<tbody id="shopReport"></tbody>
+<tfoot id="shopGrandTotal"></tfoot></table></div>
+</div>
+
+<div class="card">
+<h2>📦 सामान और स्टॉक</h2>
+<div class="small">
+🛒 <b>सामान</b> = नाम &nbsp; | &nbsp;
+💰 <b>खरीद</b> = दुकान ने जिस कीमत पर खरीदा &nbsp; | &nbsp;
+🏷️ <b>बिक्री</b> = ग्राहक को जिस कीमत पर बेचना है &nbsp; | &nbsp;
+📦 <b>स्टॉक</b> = अभी उपलब्ध मात्रा
+</div>
+<div class="column-head"><div>क्रमांक</div><div>🛒 सामान</div><div>💰 खरीद</div><div>🏷️ बिक्री</div><div>💵 बचत</div><div>% बचत</div><div>📦 स्टॉक</div></div>
+<div class="product-editor-scroll"><div id="productEditor"></div></div>
+<button id="addProduct" class="tab" type="button">➕ नया सामान जोड़ें</button>
+<button id="saveProducts" class="green" style="width:100%;margin-top:8px" type="button">💾 सामान सेव करें</button>
+</div>
+
+<div class="card">
+<h2>🎁 ऑफर चक्र बदलें</h2>
+<div class="small">चक्र में 2 से 50 उपहार रख सकते हैं। नाम बदलें, जोड़ें या हटाएँ, फिर सेव करें।</div>
+<div id="offerEditor"></div>
+<button id="addOffer" class="tab" type="button">➕ नया उपहार जोड़ें</button>
+<button id="saveOffers" class="green" style="width:100%;margin-top:8px" type="button">💾 ऑफर सेव करें</button>
+</div>
+
+<div class="card">
+<h2>📦 प्रत्येक दुकान का सामान बिक्री हिसाब</h2>
+<div class="small">तारीख और दुकान चुनकर देखें कि किस सामान की कितनी मात्रा बिकी।</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px">
+<label>तारीख<input id="productReportDate" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" autocomplete="off"></label>
+<label>दुकान<select id="productReportShop"></select></label>
+</div>
+<div id="ownerProductSummary" style="overflow:auto;margin-top:8px"></div>
+</div>
+
+<div class="card">
+<h2>📊 मासिक दुकान हिसाब</h2>
+<div class="small">किसी दुकान और महीने को चुनें। पूरे महीने की बिक्री, भुगतान, उधारी वापसी और सामान की कुल बिक्री यहाँ दिखेगी।</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px">
+<label>महीना<input id="monthlyReportMonth" type="month"></label>
+<label>दुकान<select id="monthlyReportShop"></select></label>
+</div>
+<div class="stats" style="margin-top:10px">
+<div class="stat">🧾 कुल बिल<b id="monthlyBills">0</b></div>
+<div class="stat">💰 कुल बिक्री<b>₹<span id="monthlySales">0</span></b></div>
+<div class="stat">💵 नगद<b>₹<span id="monthlyCash">0</span></b></div>
+<div class="stat">📱 UPI<b>₹<span id="monthlyUpi">0</span></b></div>
+<div class="stat">📒 उधारी<b>₹<span id="monthlyCredit">0</span></b></div>
+<div class="stat">🔄 उधारी वापसी<b>₹<span id="monthlyRepayments">0</span></b></div>
+<div class="stat">🏆 विजेता<b id="monthlyWinners">0</b></div>
+<div class="stat">📒 अभी बाकी<b>₹<span id="monthlyOutstanding">0</span></b></div>
+</div>
+<div class="notice" style="margin-top:10px"><b>महीने में बिका सामान</b></div>
+<div id="monthlyProductSummary" style="overflow:auto;margin-top:8px"></div>
+</div>
+
+<div class="card">
+<h2>📒 उधारी की कुल स्थिति</h2>
+<div id="ownerCreditSummary" class="small">उधारी का हिसाब यहाँ दिखाई देगा।</div>
+</div>
+
+<div class="card">
+<h2>☁️ Tumvan Cloud Sync</h2>
+<div class="notice"><b>ऑफलाइन पहले, क्लाउड बाद में।</b><br>दुकान इंटरनेट के बिना भी काम करेगी। इंटरनेट मिलते ही, यदि Cloud सेट किया गया है, तो कंपनी का डेटा अपने आप Sync किया जा सकता है।</div>
+<div class="grid2" style="margin-top:10px">
+<label>Firebase API Key<input id="cloudApiKey" placeholder="Firebase Web API Key"></label>
+<label>Auth Domain<input id="cloudAuthDomain" placeholder="your-project.firebaseapp.com"></label>
+<label>Project ID<input id="cloudProjectId" placeholder="your-project-id"></label>
+<label>App ID<input id="cloudAppId" placeholder="Firebase App ID"></label>
+</div>
+<div class="grid2" style="margin-top:8px">
+<button id="cloudSaveConfig" class="green" type="button">☁️ Cloud सेटिंग सेव करें</button>
+<button id="cloudSyncNow" class="green" type="button"
+style="width:100%;min-height:58px;margin-top:8px;position:relative;z-index:99999;cursor:pointer;pointer-events:auto;touch-action:manipulation;font-size:18px;font-weight:800;"
+onclick="event.preventDefault(); event.stopPropagation(); if(window.tumvanCloudSyncNow){window.tumvanCloudSyncNow();}else{alert('Cloud Sync सिस्टम लोड नहीं हुआ। नया पेज खोलें।')} return false;"
+ontouchend="event.preventDefault(); event.stopPropagation(); if(window.tumvanCloudSyncNow){window.tumvanCloudSyncNow();} return false;">🔄 अभी Sync करें</button>
+</div>
+<div id="cloudStatus" class="small" style="margin-top:8px">☁️ Cloud अभी कॉन्फ़िगर नहीं है।</div>
+</div>
+
+<div class="card">
+<h2>🧹 डेटा प्रबंधन / साफ करें</h2>
+<div class="notice">यह भाग केवल <b>Tumvan कंपनी</b> के लिए है। डेटा साफ करने के बाद उसे वापस लाना संभव नहीं होगा। हर कार्रवाई पर दो बार पुष्टि होगी।</div>
+<div class="grid2" style="margin-top:10px">
+<button id="clearTodaySales" class="tab" type="button">🧹 आज की बिक्री साफ करें</button>
+<button id="clearShopSales" class="tab" type="button">🏪 किसी एक दुकान की बिक्री साफ करें</button>
+<button id="clearAllSales" class="tab" type="button">🧹 सभी दुकानों की बिक्री साफ करें</button>
+<button id="clearCreditData" class="tab" type="button">📒 उधारी का डेटा साफ करें</button>
+<button id="resetStock" class="tab" type="button">📦 स्टॉक रीसेट करें</button>
+<button id="resetWholeSystem" class="red" type="button">⚠️ पूरा सिस्टम नया करें</button>
+</div>
+<div id="clearDataStatus" class="small" style="margin-top:8px"></div>
+</div>
+
+<div class="card">
+<h2>📊 हाल की बिक्री</h2>
+<div id="salesSummary" class="small">अभी कोई बिक्री नहीं।</div>
+</div>
+</section>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+"use strict";
+
+const PRODUCT_KEY="anokhi_simple_products_v4";
+const OFFER_KEY="anokhi_simple_offers_v4";
+const SALES_KEY="anokhi_simple_sales_v4";
+const CREDIT_REPAY_KEY="anokhi_credit_repayments_v1";
+const COMPANY_KEY="anokhi_company_assignments_v1";
+
+const DEFAULT_PRODUCTS=[
+["आटा",45,50,25],["चावल",50,60,30],["दाल",90,110,20],["तेल",120,140,25],
+["नमक",20,25,40],["चाय",80,100,20],["बिस्कुट",10,10,50],["नमकीन",30,40,30],
+["साबुन",35,45,25],["शैम्पू",60,75,20],["पॉप्स",20,25,30],["मसाला",30,40,25],
+["चीनी",45,50,30],["टॉफी",2,2,100],["अगरबत्ती",25,35,20],["कुरकुरे",10,10,50]
+];
+const DEFAULT_OFFERS=["आटा","कुरकुरे","बिस्कुट","शैम्पू","तेल ₹20 बचत","चाय","नमकीन","मसाला","पॉप्स","साबुन","टॉफी","चीनी","नमक","अगरबत्ती","शैम्पू","तेल","दाल","आटा","कुरकुरे","₹20 बचत"];
+
+const $=id=>document.getElementById(id);
+function clone(v){return JSON.parse(JSON.stringify(v))}
+function load(key, fallback){
+  try{
+    const raw=localStorage.getItem(key);
+    if(!raw) return clone(fallback);
+    const parsed=JSON.parse(raw);
+    return Array.isArray(parsed)?parsed:clone(fallback);
+  }catch(e){return clone(fallback)}
+}
+function save(key,value){
+  try{localStorage.setItem(key,JSON.stringify(value));return true}catch(e){alert("मोबाइल में डेटा सेव नहीं हो पाया।");return false}
+}
+function esc(v){
+  return String(v).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+let products=load(PRODUCT_KEY,DEFAULT_PRODUCTS);
+let offers=load(OFFER_KEY,DEFAULT_OFFERS);
+let sales=load(SALES_KEY,[]);
+let creditRepayments=load(CREDIT_REPAY_KEY,[]);
+let assignments=load(COMPANY_KEY,Array.from({length:10},(_,i)=>({shop:"दुकान "+(i+1)+(i===0?" — अनोखी अपनी दुकान":""),employee:i===0?"मैनेजर 1":"",code:i===0?"111111":""})));
+let employeeUnlocked=false;
+let companyUnlocked=false;
+let offerUnlocked=false;
+let offerConsumed=false;
+let paymentConfirmed=false;
+let currentBillId="";
+let cart=[];
+let selectedOffer="";
+let rotation=0;
+let spinning=false;
+
+const navSale=$("navSale"),navOffer=$("navOffer"),navOwner=$("navOwner");
+const shopDisplay=$("shopDisplay"),assignShop=$("assignShop"),assignEmployee=$("assignEmployee"),assignCode=$("assignCode"),saveAssignment=$("saveAssignment"),assignmentStatus=$("assignmentStatus"),assignmentTable=$("assignmentTable");
+const shop={get value(){return shopDisplay.value},set value(v){shopDisplay.value=v}};
+const pageSale=$("pageSale"),pageOffer=$("pageOffer"),pageOwner=$("pageOwner");
+const employee=$("employee"),productSearch=$("productSearch"),productGrid=$("productGrid");
+const cartBox=$("cart"),emptyCart=$("emptyCart"),totalEl=$("total"),payment=$("payment");
+const creditCustomerBox=$("creditCustomerBox"),creditCustomerName=$("creditCustomerName"),creditCustomerPhone=$("creditCustomerPhone");
+const paidButton=$("paidButton"),offerList=$("offerList"),choiceText=$("choiceText");
+const canvas=$("wheelCanvas"),ctx=canvas.getContext("2d"),spinButton=$("spinButton");
+const resultBox=$("result"),nextSale=$("nextSale");
+const creditAccounts=$("creditAccounts"),creditCustomerSelect=$("creditCustomerSelect"),creditRepayAmount=$("creditRepayAmount"),recordCreditRepayment=$("recordCreditRepayment"),managerProductSummary=$("managerProductSummary");
+const productReportDate=$("productReportDate"),productReportShop=$("productReportShop"),ownerProductSummary=$("ownerProductSummary"),ownerCreditSummary=$("ownerCreditSummary");
+const productEditor=$("productEditor"),offerEditor=$("offerEditor");
+const addProduct=$("addProduct"),saveProducts=$("saveProducts"),addOffer=$("addOffer"),saveOffers=$("saveOffers");
+const empShopBills=$("empShopBills"),empShopSales=$("empShopSales"),empShopCash=$("empShopCash"),empShopUpi=$("empShopUpi"),empShopCredit=$("empShopCredit"),empShopWinners=$("empShopWinners"),mySales=$("mySales"),myBills=$("myBills");
+const todayBills=$("todayBills"),todaySales=$("todaySales"),todayWinners=$("todayWinners"),todayWinnerValue=$("todayWinnerValue"),todayOffers=$("todayOffers");
+const cashTotal=$("cashTotal"),upiTotal=$("upiTotal"),creditTotal=$("creditTotal"),outstandingTotal=$("outstandingTotal"),shopReport=$("shopReport"),shopGrandTotal=$("shopGrandTotal"),salesSummary=$("salesSummary");
+const monthlyReportMonth=$("monthlyReportMonth"),monthlyReportShop=$("monthlyReportShop"),monthlyBills=$("monthlyBills"),monthlySales=$("monthlySales"),monthlyCash=$("monthlyCash"),monthlyUpi=$("monthlyUpi"),monthlyCredit=$("monthlyCredit"),monthlyRepayments=$("monthlyRepayments"),monthlyWinners=$("monthlyWinners"),monthlyOutstanding=$("monthlyOutstanding"),monthlyProductSummary=$("monthlyProductSummary");
+const clearTodaySales=$("clearTodaySales"),clearShopSales=$("clearShopSales"),clearAllSales=$("clearAllSales"),clearCreditData=$("clearCreditData"),resetStock=$("resetStock"),resetWholeSystem=$("resetWholeSystem"),clearDataStatus=$("clearDataStatus");
+
+function show(page){
+  pageSale.classList.toggle("hidden",page!=="sale");
+  pageOffer.classList.toggle("hidden",page!=="offer");
+  pageOwner.classList.toggle("hidden",page!=="owner");
+  navSale.className="tab"+(page==="sale"?" active":"");
+  navOffer.className="tab"+(page==="offer"?" active":"");
+  navOwner.className="tab"+(page==="owner"?" active":"");
+  if(page==="owner") renderOwner();
+}
+
+function getAssigned(){
+  let idx=Math.max(0,Math.min(9,Number(localStorage.getItem("tumvan_active_shop_index")||0)));
+  if(!assignments[0] || !assignments[0].employee || !assignments[0].code){
+    assignments[0]=assignments[0]||{};
+    assignments[0].shop=assignments[0].shop||"दुकान 1 — अनोखी अपनी दुकान";
+    assignments[0].employee="मैनेजर 1";
+    assignments[0].code="111111";
+    save(COMPANY_KEY,assignments);
+  }
+  return {idx,data:assignments[idx]||assignments[0]};
+}
+function refreshAssignmentUI(){
+  assignShop.innerHTML=assignments.map((a,i)=>`<option value="${i}">${esc(a.shop||("दुकान "+(i+1)))}</option>`).join("");
+  const {idx,data}=getAssigned();
+  assignShop.value=String(idx);
+  assignEmployee.value=data.employee||"";
+  assignCode.value=data.code||"";
+  shopDisplay.value=data.employee && data.shop ? data.shop : "Tumvan से दुकान आवंटित नहीं है";
+  employee.value=data.employee||"मैनेजर";
+  assignmentStatus.innerHTML=data.employee && data.code ? `🔒 <b>${esc(data.shop)}</b> → <b>${esc(data.employee)}</b> आवंटित है। दुकान मैनेजर लॉगिन कोड कंपनी के पास सुरक्षित है।` : `⚠️ इस दुकान पर अभी मैनेजर/कोड आवंटित नहीं है।`;
+  assignmentTable.innerHTML=assignments.map((a,i)=>`<tr><td style="padding:6px;border-top:1px solid #ddd">${esc(a.shop||("दुकान "+(i+1)))}</td><td style="padding:6px;border-top:1px solid #ddd">${esc(a.employee||"—")}</td><td style="padding:6px;border-top:1px solid #ddd">${a.employee&&a.code?"🔒 आवंटित":"⚪ खाली"}</td></tr>`).join("");
+  updateEmployeeDashboard();
+}
+assignShop.addEventListener("change",()=>{
+  const i=Number(assignShop.value),a=assignments[i]||{};
+  assignEmployee.value=a.employee||""; assignCode.value=a.code||"";
+});
+saveAssignment.addEventListener("click",()=>{
+  const i=Number(assignShop.value),name=assignEmployee.value.trim(),code=assignCode.value.trim();
+  if(!name){alert("दुकान मैनेजर का नाम लिखें।");return;}
+  if(!/^\d{4,6}$/.test(code)){alert("दुकान मैनेजर लॉगिन कोड 4 से 6 अंकों का रखें।");return;}
+  const duplicate=assignments.some((a,j)=>j!==i && String(a.code||"").trim()===code);
+  if(duplicate){alert("❌ यह लॉगिन कोड किसी दूसरी दुकान को दिया जा चुका है। हर दुकान मैनेजर का अलग कोड रखें।");return;}
+  assignments[i].employee=name; assignments[i].code=code;
+  save(COMPANY_KEY,assignments);
+  localStorage.setItem("tumvan_active_shop_index",String(i));
+  refreshAssignmentUI();
+  alert("✅ Tumvan कंपनी ने दुकान और दुकान मैनेजर को लॉक करके सेव कर दिया।");
+});
+function resetCurrentCustomer(){
+  cart=[];
+  selectedOffer="";
+  offerUnlocked=false;
+  offerConsumed=false;
+  paymentConfirmed=false;
+  currentBillId="";
+  productSearch.value="";
+  creditCustomerName.value="";
+  creditCustomerPhone.value="";
+  payment.value="नकद";
+  creditCustomerBox.classList.add("hidden");
+  choiceText.textContent="उपहार अभी नहीं चुना";
+  resultBox.classList.add("hidden");
+  renderCart();
+  renderOffers();
+}
+
+navSale.addEventListener("click",()=>{
+  if(!employeeUnlocked && !companyUnlocked){
+    const {data}=getAssigned();
+    if(!data.employee || !data.code){alert("🔒 पहले Tumvan कंपनी से दुकान और दुकान मैनेजर आवंटित करवाएँ।");return;}
+    const code=prompt("🔐 Tumvan द्वारा दिया गया दुकान मैनेजर लॉगिन कोड डालें");
+    if(code !== data.code){if(code!==null) alert("❌ गलत मैनेजर कोड।");return;}
+    employeeUnlocked=true;
+  }
+  // यदि पिछले ग्राहक का ऑफर/चक्र पूरा हो चुका है और मैनेजर सीधे
+  // मैनेजर पेज पर लौटता है, तो पिछले ग्राहक का बिल फिर से नहीं दिखना चाहिए।
+  // नया ग्राहक तभी शुरू होगा; अधूरा बिल (पेमेंट हो चुका लेकिन ऑफर बाकी) सुरक्षित रहेगा।
+  if(offerConsumed){
+    resetCurrentCustomer();
+  }
+  refreshAssignmentUI();
+  show("sale");
+});
+navOffer.addEventListener("click",()=>{
+  if(!employeeUnlocked && !companyUnlocked){alert("🔒 पहले दुकान मैनेजर लॉगिन करें।");return;}
+  if(!cart.length){alert("🛒 पहले ग्राहक का सामान चुनें।");return;}
+  if(!paymentConfirmed || !currentBillId || !offerUnlocked || offerConsumed){
+    alert("🔒 इस बिल का ऑफर उपलब्ध नहीं है। पहले नया बिल बनाकर उसका भुगतान पूरा करें।");
+    return;
+  }
+  show("offer");
+});
+navOwner.addEventListener("click",()=>{
+  if(companyUnlocked){refreshAssignmentUI();show("owner");return;}
+  const pass=prompt("🔐 Tumvan कंपनी का 6 अंकों का पासवर्ड डालें");
+  if(pass === "123456"){companyUnlocked=true; employeeUnlocked=true; refreshAssignmentUI();show("owner");}
+  else if(pass !== null) alert("❌ गलत पासवर्ड। Tumvan कंपनी पैनल नहीं खुला।");
+});
+employee.addEventListener("input",updateEmployeeDashboard);
+refreshAssignmentUI();
+
+function todayISO(){
+  const d=new Date();
+  const m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");
+  return d.getFullYear()+"-"+m+"-"+day;
+}
+function saleIsToday(x){return x.dateISO===todayISO() || (!x.dateISO && x.date===new Date().toLocaleDateString("hi-IN"));}
+function saleMatchesDate(x,iso){return x.dateISO===iso || (!x.dateISO && iso===todayISO() && x.date===new Date().toLocaleDateString("hi-IN"));}
+function creditKey(name,phone){return (String(name||"नाम नहीं").trim().toLowerCase()+"|"+String(phone||"").trim());}
+function getCreditAccounts(shopName,iso){
+  const map={};
+  // उधारी कई दिनों तक बाकी रह सकती है, इसलिए ग्राहक का पूरा बकाया हिसाब रखें।
+  sales.filter(x=>x.payment==="उधारी" && x.shop===shopName).forEach(x=>{
+    const name=x.creditCustomer||"नाम नहीं",phone=x.creditPhone||"",key=creditKey(name,phone);
+    if(!map[key]) map[key]={key,name,phone,sold:0,paid:0};
+    map[key].sold+=(Number(x.amount)||0);
+  });
+  creditRepayments.filter(x=>x.shop===shopName).forEach(x=>{
+    const key=creditKey(x.customer,x.phone);
+    if(!map[key]) map[key]={key,name:x.customer||"नाम नहीं",phone:x.phone||"",sold:0,paid:0};
+    map[key].paid+=(Number(x.amount)||0);
+  });
+  return Object.values(map).map(a=>({...a,balance:Math.max(0,a.sold-a.paid)})).filter(a=>a.sold>0 || a.paid>0);
+}
+function allOutstanding(){
+  const map={};
+  sales.filter(x=>x.payment==="उधारी").forEach(x=>{const key=creditKey(x.creditCustomer||"नाम नहीं",x.creditPhone||"");if(!map[key])map[key]={name:x.creditCustomer||"नाम नहीं",phone:x.creditPhone||"",shop:x.shop,sold:0,paid:0};map[key].sold+=(Number(x.amount)||0);});
+  creditRepayments.forEach(x=>{const key=creditKey(x.customer,x.phone);if(!map[key])map[key]={name:x.customer||"नाम नहीं",phone:x.phone||"",shop:x.shop, sold:0,paid:0};map[key].paid+=(Number(x.amount)||0);});
+  return Object.values(map).map(a=>({...a,balance:Math.max(0,a.sold-a.paid)})).filter(a=>a.balance>0);
+}
+function renderManagerCredit(){
+  const shopName=shop.value,iso=todayISO(),accounts=getCreditAccounts(shopName,iso);
+  creditAccounts.innerHTML=accounts.length?accounts.map(a=>`<div class="line"><span>👤 ${esc(a.name)}${a.phone?" • "+esc(a.phone):""}</span><b>बाकी ₹${a.balance}</b></div>`).join(""):"आज इस दुकान की कोई उधारी दर्ज नहीं है।";
+  creditCustomerSelect.innerHTML='<option value="">ग्राहक चुनें</option>'+accounts.filter(a=>a.balance>0).map(a=>`<option value="${esc(a.key)}">${esc(a.name)}${a.phone?" — "+esc(a.phone):""} — बाकी ₹${a.balance}</option>`).join("");
+}
+function monthKeyFromISO(iso){return String(iso||"").slice(0,7);}
+function renderMonthlyReport(){
+  const month=monthlyReportMonth.value||todayISO().slice(0,7);
+  const shopName=monthlyReportShop.value||"__ALL__";
+  const filtered=sales.filter(x=>monthKeyFromISO(x.dateISO||"")===month && (shopName==="__ALL__" || x.shop===shopName));
+  const sum=m=>filtered.filter(x=>x.payment===m).reduce((a,x)=>a+(Number(x.amount)||0),0);
+  monthlyBills.textContent=filtered.length;
+  monthlySales.textContent=filtered.reduce((a,x)=>a+(Number(x.amount)||0),0);
+  monthlyCash.textContent=sum("नकद");
+  monthlyUpi.textContent=sum("UPI");
+  monthlyCredit.textContent=sum("उधारी");
+  monthlyWinners.textContent=filtered.filter(x=>x.won).length;
+  const repayments=creditRepayments.filter(x=>monthKeyFromISO(x.dateISO||"")===month && (shopName==="__ALL__" || x.shop===shopName));
+  monthlyRepayments.textContent=repayments.reduce((a,x)=>a+(Number(x.amount)||0),0);
+  const outstanding=allOutstanding().filter(x=>shopName==="__ALL__" || x.shop===shopName);
+  monthlyOutstanding.textContent=outstanding.reduce((a,x)=>a+(Number(x.balance)||0),0);
+  const map={};
+  filtered.forEach(x=>(x.items||[]).forEach(it=>{const key=it.name;if(!map[key])map[key]={name:key,qty:0,sales:0};map[key].qty+=Number(it.qty)||0;map[key].sales+=(Number(it.price)||0)*(Number(it.qty)||0);}));
+  const rows=Object.values(map).sort((a,b)=>a.name.localeCompare(b.name,"hi"));
+  monthlyProductSummary.innerHTML=rows.length?`<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th>क्रमांक</th><th>सामान</th><th>बिकी मात्रा</th><th>बिक्री राशि</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.name)}</td><td>${r.qty}</td><td>₹${r.sales}</td></tr>`).join("")}</tbody><tfoot><tr style="font-weight:900;background:#e9f6ec"><td colspan="2">कुल</td><td>${rows.reduce((a,r)=>a+r.qty,0)}</td><td>₹${rows.reduce((a,r)=>a+r.sales,0)}</td></tr></tfoot></table>`:`<div class="empty">इस महीने की बिक्री उपलब्ध नहीं है।</div>`;
+}
+
+function renderProductSummary(container,shopName,iso){
+  const map={};
+  sales.filter(x=>(!shopName || x.shop===shopName) && saleMatchesDate(x,iso)).forEach(x=>{
+    (x.items||[]).forEach(it=>{const key=it.name;if(!map[key])map[key]={name:key,qty:0,sales:0};map[key].qty+=Number(it.qty)||0;map[key].sales+=(Number(it.price)||0)*(Number(it.qty)||0);});
+  });
+  const rows=Object.values(map).sort((a,b)=>a.name.localeCompare(b.name,"hi"));
+  container.innerHTML=rows.length?`<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th>सामान</th><th>बिकी मात्रा</th><th>बिक्री राशि</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${r.qty}</td><td>₹${r.sales}</td></tr>`).join("")}</tbody><tfoot><tr style="font-weight:900;background:#e9f6ec"><td>कुल</td><td>${rows.reduce((a,r)=>a+r.qty,0)}</td><td>₹${rows.reduce((a,r)=>a+r.sales,0)}</td></tr></tfoot></table>`:`<div class="empty">इस तारीख की बिक्री का सामान हिसाब उपलब्ध नहीं है।</div>`;
+}
+function isoToDisplayDate(iso){
+  if(!iso) return "";
+  const m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
+}
+function displayDateToISO(value){
+  const v=String(value||"").trim();
+  const m=v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(!m) return "";
+  const d=String(m[1]).padStart(2,"0"), mo=String(m[2]).padStart(2,"0"), y=m[3];
+  const dt=new Date(Number(y),Number(mo)-1,Number(d));
+  if(dt.getFullYear()!==Number(y)||dt.getMonth()!==Number(mo)-1||dt.getDate()!==Number(d)) return "";
+  return `${y}-${mo}-${d}`;
+}
+function refreshProductReport(){
+  const typed=displayDateToISO(productReportDate.value);
+  const iso=typed||todayISO(), selected=productReportShop.value||"__ALL__";
+  renderProductSummary(ownerProductSummary,selected==="__ALL__"?"":selected,iso);
+}
+
+function renderProducts(){
+  const q=productSearch.value.trim().toLowerCase();
+  productGrid.innerHTML="";
+  const visible=products.filter(p=>String(p[0]).toLowerCase().includes(q));
+  if(!visible.length){
+    productGrid.innerHTML="<div class='empty' style='grid-column:1/-1'>सामान नहीं मिला। नाम सही लिखें।</div>";
+    return;
+  }
+  visible.forEach(p=>{
+    const index=products.indexOf(p);
+    const card=document.createElement("div");
+    card.className="p";
+    const stock=Number(p[3])||0;
+    const stockText=stock>0?"स्टॉक "+stock:"<span style=\"color:#b42318;font-weight:900\">उपलब्ध नहीं • स्टॉक 0</span>";
+    card.innerHTML="<b>"+esc(p[0])+"</b><div class='price'>₹"+(Number(p[2])||0)+" • "+stockText+"</div><div class='q'><button type='button' class='tab'>−</button><span>0</span><button type='button' class='green' "+(stock<=0?"disabled":"")+">+</button></div>";
+    const qty=card.querySelector("span");
+    const minus=card.querySelectorAll("button")[0];
+    const plus=card.querySelectorAll("button")[1];
+    function refreshQty(){const c=cart.find(x=>x.i===index);qty.textContent=c?c.q:0}
+    plus.addEventListener("click",()=>{addToCart(index);refreshQty()});
+    minus.addEventListener("click",()=>{removeFromCart(index);refreshQty()});
+    refreshQty();
+    productGrid.appendChild(card);
+  });
+}
+function addToCart(index){
+  const p=products[index];
+  const stock=Math.max(0,Number(p[3])||0);
+  const c=cart.find(x=>x.i===index);
+  const current=c?c.q:0;
+  if(stock<=0){alert("❌ यह सामान उपलब्ध नहीं है (स्टॉक 0)। बिल में नहीं जोड़ा जा सकता।");return}
+  if(current>=stock){alert("❌ इस सामान का उपलब्ध स्टॉक खत्म है।");return}
+  if(c)c.q++;else cart.push({i:index,q:1});
+  renderCart();
+}
+function removeFromCart(index){
+  const c=cart.find(x=>x.i===index);
+  if(!c)return;
+  c.q--;
+  if(c.q<=0)cart=cart.filter(x=>x!==c);
+  renderCart();
+}
+function renderCart(){
+  cartBox.innerHTML="";
+  let total=0;
+  cart.forEach(c=>{
+    const p=products[c.i], value=(Number(p[2])||0)*c.q;
+    total+=value;
+    const row=document.createElement("div");
+    row.className="line";
+    row.innerHTML="<span>"+esc(p[0])+" × "+c.q+"</span><b>₹"+value+"</b>";
+    cartBox.appendChild(row);
+  });
+  emptyCart.classList.toggle("hidden",cart.length>0);
+  totalEl.textContent=total;
+  renderProducts();
+}
+productSearch.addEventListener("input",renderProducts);
+payment.addEventListener("change",()=>{
+  const isCredit=payment.value==="उधारी";
+  creditCustomerBox.classList.toggle("hidden",!isCredit);
+  if(!isCredit){creditCustomerName.value="";creditCustomerPhone.value="";}
+});
+
+function renderOffers(){
+  offerList.innerHTML="";
+  if(!offerUnlocked || offerConsumed || !paymentConfirmed || !currentBillId){
+    offerList.innerHTML='<div class="notice" style="font-weight:900">🔒 ऑफर अभी लॉक है। पहले सामान चुनें और बिल का भुगतान पूरा करें।</div>';
+    return;
+  }
+  offers.forEach((name,index)=>{
+    const label=document.createElement("label");
+    label.className="offer";
+    label.innerHTML="<input type='radio' name='offerChoice' value='"+index+"'> "+(index+1)+". "+esc(name);
+    label.querySelector("input").addEventListener("change",()=>{
+      selectedOffer=name;
+      choiceText.textContent="ग्राहक ने चुना: "+name;
+    });
+    offerList.appendChild(label);
+  });
+}
+function drawWheel(){
+  const W=canvas.width,H=canvas.height,cx=W/2,cy=H/2,r=300,n=offers.length;
+  ctx.clearRect(0,0,W,H);
+  if(n<2)return;
+  ctx.save();
+  ctx.translate(cx,cy);
+  ctx.rotate(rotation);
+  const colors=["#5d70d8","#8065da","#a15bd7","#c14fc7","#d84eaa","#d84f82","#df6269","#e77b61","#e49a62","#d9b35c","#b9ca59","#83d25d","#50d179","#48c9ae","#52bfd0","#5c9fda","#6c82d8","#886ed8","#a95bd2","#c34fc2"];
+  for(let i=0;i<n;i++){
+    const a=-Math.PI/2+i*2*Math.PI/n,b=a+2*Math.PI/n;
+    ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,r,a,b);ctx.closePath();
+    ctx.fillStyle=colors[i%colors.length];ctx.fill();ctx.strokeStyle="#fff";ctx.lineWidth=4;ctx.stroke();
+    ctx.save();ctx.rotate((a+b)/2);ctx.textAlign="right";ctx.fillStyle="#123";ctx.font="bold 23px Arial";
+    let text=String(offers[i]);if(text.length>14)text=text.slice(0,13)+"…";
+    ctx.fillText(text,r-15,8);ctx.restore();
+  }
+  ctx.beginPath();ctx.arc(0,0,88,0,Math.PI*2);ctx.fillStyle="#fff";ctx.fill();ctx.lineWidth=10;ctx.strokeStyle="#08783a";ctx.stroke();
+  ctx.restore();
+}
+function spin(){
+  if(spinning)return;
+  if(!paymentConfirmed || !currentBillId || !offerUnlocked || offerConsumed){alert("🔒 इस बिल का ऑफर उपलब्ध नहीं है। पहले नया बिल बनाकर भुगतान पूरा करें।");return}
+  if(!selectedOffer){alert("पहले ग्राहक से एक उपहार चुनवाएँ।");return}
+  spinning=true;spinButton.disabled=true;resultBox.classList.add("hidden");
+  const n=offers.length,target=Math.floor(Math.random()*n),slice=2*Math.PI/n;
+  const start=rotation;
+  const twoPi=Math.PI*2;
+  // लाल तीर हमेशा ऊपर (-90°) है। लक्ष्य वाले खाने का मध्य
+  // ठीक लाल तीर के नीचे लाने के लिए अंतिम rotation निकालें।
+  const targetBaseAngle=-Math.PI/2+(target+0.5)*slice;
+  let delta=(-Math.PI/2-targetBaseAngle-start)%twoPi;
+  if(delta<0) delta+=twoPi;
+  const end=start+twoPi*6+delta;
+  const startTime=performance.now(),duration=4200;
+  function frame(now){
+    const p=Math.min(1,(now-startTime)/duration);
+    const ease=1-Math.pow(1-p,3);
+    rotation=start+(end-start)*ease;
+    drawWheel();
+    if(p<1){requestAnimationFrame(frame);return}
+    spinning=false;spinButton.disabled=false;
+    const result=offers[target],won=result===selectedOffer;
+    const amount=Number(totalEl.textContent)||0;
+    offerConsumed=true;
+    offerUnlocked=false;
+    renderOffers();
+    const prizeValue=won?getOfferValue(result):0;
+     sales.push({billId:currentBillId,date:new Date().toLocaleDateString("hi-IN"),dateISO:todayISO(),time:new Date().toLocaleTimeString("hi-IN",{hour:"2-digit",minute:"2-digit"}),shop:shop.value,employee:employee.value.trim()||"मैनेजर",amount,payment:payment.value,result,selected:selectedOffer,won,prizeValue,creditCustomer:payment.value==="उधारी"?creditCustomerName.value.trim():"",creditPhone:payment.value==="उधारी"?creditCustomerPhone.value.trim():"",items:cart.map(c=>({name:products[c.i]?products[c.i][0]:"सामान",qty:c.q,price:products[c.i]?Number(products[c.i][2])||0:0}))});
+    save(SALES_KEY,sales);
+    updateEmployeeDashboard();
+    renderManagerCredit();
+    renderProductSummary(managerProductSummary,shop.value,todayISO());
+    resultBox.innerHTML=won?"🎉 <b>बधाई!</b><br>🔻 लाल तीर के नीचे <b>"+esc(result)+"</b> आया।<br>ग्राहक ने चुना था: <b>"+esc(selectedOffer)+"</b>":"🎡 🔻 लाल तीर के नीचे <b>"+esc(result)+"</b> आया।<br>ग्राहक ने चुना था: <b>"+esc(selectedOffer)+"</b>";
+    resultBox.classList.remove("hidden");
+    updateStats();
+  }
+  requestAnimationFrame(frame);
+}
+spinButton.addEventListener("click",spin);
+
+paidButton.addEventListener("click",()=>{
+  if(paymentConfirmed){alert("✅ इस बिल का भुगतान पहले ही दर्ज हो चुका है।");return}
+  if(!cart.length){alert("🛒 पहले ग्राहक का सामान चुनें।");return}
+  const amount=Number(totalEl.textContent)||0;
+  if(amount<=0){alert("💰 बिल की राशि 0 है। पहले सामान चुनें।");return}
+  if(payment.value==="उधारी" && !creditCustomerName.value.trim()){alert("उधारी के लिए ग्राहक का नाम जरूरी है।");creditCustomerName.focus();return}
+  if(payment.value==="उधारी" && creditCustomerPhone.value.trim() && !/^\d{10}$/.test(creditCustomerPhone.value.trim())){alert("मोबाइल नंबर 10 अंकों का रखें या खाली छोड़ें।");creditCustomerPhone.focus();return}
+  // यह बटन मैनेजर की पुष्टि है कि ग्राहक से भुगतान मिल गया है।
+  cart.forEach(c=>{if(products[c.i])products[c.i][3]=Math.max(0,(Number(products[c.i][3])||0)-c.q)});
+  save(PRODUCT_KEY,products);
+  paymentConfirmed=true;
+  currentBillId="B"+Date.now()+""+Math.floor(Math.random()*1000);
+  offerUnlocked=true;
+  offerConsumed=false;
+  selectedOffer="";
+  choiceText.textContent="उपहार अभी नहीं चुना";
+  resultBox.classList.add("hidden");
+  renderOffers();
+  show("offer");
+});
+
+nextSale.addEventListener("click",()=>{
+  cart=[];selectedOffer="";offerUnlocked=false;offerConsumed=false;paymentConfirmed=false;currentBillId="";productSearch.value="";creditCustomerName.value="";creditCustomerPhone.value="";payment.value="नकद";creditCustomerBox.classList.add("hidden");choiceText.textContent="उपहार अभी नहीं चुना";resultBox.classList.add("hidden");
+  renderCart();renderOffers();renderManagerCredit();renderProductSummary(managerProductSummary,shop.value,todayISO());show("sale");
+});
+
+function renderOwner(){
+  productEditor.innerHTML="";
+  products.forEach((p,idx)=>{
+    const buy=Math.max(0,Number(p[1])||0), sell=Math.max(0,Number(p[2])||0);
+    const saving=sell-buy, savingPct=buy>0?(saving/buy*100):0;
+    const row=document.createElement("div");row.className="owner-row";
+    row.style.gridTemplateColumns="48px 145px 78px 78px 78px 82px 78px";
+    row.innerHTML="<div style='font-weight:900;text-align:center'>"+(idx+1)+"</div><input value='"+esc(p[0])+"' aria-label='सामान'><input type='number' min='0' value='"+buy+"' aria-label='खरीद कीमत'><input type='number' min='0' value='"+sell+"' aria-label='बिक्री कीमत'><div class='saving-value' style='font-weight:900;text-align:center'>₹"+saving.toFixed(2).replace(/\.00$/,'')+"</div><div class='saving-pct' style='font-weight:900;text-align:center'>"+savingPct.toFixed(2)+"%</div><input type='number' min='0' value='"+(Number(p[3])||0)+"' aria-label='स्टॉक'>";
+    const priceInputs=row.querySelectorAll("input[type='number']");
+    const buyInput=priceInputs[0], sellInput=priceInputs[1];
+    const refreshSaving=()=>{
+      const b=Math.max(0,Number(buyInput.value)||0), se=Math.max(0,Number(sellInput.value)||0);
+      const sv=se-b, pct=b>0?(sv/b*100):0;
+      row.querySelector('.saving-value').textContent='₹'+sv.toFixed(2).replace(/\.00$/,'');
+      row.querySelector('.saving-pct').textContent=pct.toFixed(2)+'%';
+    };
+    buyInput.addEventListener('input',refreshSaving);
+    sellInput.addEventListener('input',refreshSaving);
+    productEditor.appendChild(row);
+  });
+  offerEditor.innerHTML="";
+  offers.forEach((o,i)=>{
+    const row=document.createElement("div");row.className="offer-editor-row";
+    row.innerHTML="<input value='"+esc(o)+"' aria-label='उपहार'><button type='button' class='danger'>हटाएँ</button>";
+    row.querySelector("button").addEventListener("click",()=>{if(offers.length<=2){alert("कम से कम 2 उपहार रखें।");return}offers.splice(i,1);renderOwner()});
+    offerEditor.appendChild(row);
+  });
+  updateStats();
+}
+addProduct.addEventListener("click",()=>{
+  products.push(["नया सामान",0,0,0]);renderOwner();
+});
+saveProducts.addEventListener("click",()=>{
+  const rows=[...productEditor.querySelectorAll(".owner-row")];
+  products=rows.map(row=>{
+    const inputs=row.querySelectorAll("input");
+    return [inputs[0].value.trim()||"सामान",Math.max(0,Number(inputs[1].value)||0),Math.max(0,Number(inputs[2].value)||0),Math.max(0,Number(inputs[3].value)||0)];
+  });
+  save(PRODUCT_KEY,products);renderProducts();alert("✅ सामान की सूची सेव हो गई।");
+});
+addOffer.addEventListener("click",()=>{
+  if(offers.length>=50){alert("अधिकतम 50 उपहार रख सकते हैं।");return}
+  offers.push("नया उपहार");renderOwner();
+});
+saveOffers.addEventListener("click",()=>{
+  const rows=[...offerEditor.querySelectorAll(".owner-row")];
+  const next=rows.map(row=>row.querySelector("input").value.trim()).filter(Boolean);
+  if(next.length<2){alert("कम से कम 2 उपहार रखें।");return}
+  offers=next.slice(0,50);save(OFFER_KEY,offers);renderOffers();drawWheel();alert("✅ ऑफर चक्र सेव हो गया।");
+});
+function updateEmployeeDashboard(){
+  const today=new Date().toLocaleDateString("hi-IN");
+  const shopName=shop.value;
+  const employeeName=(employee.value||"").trim();
+  const shopData=sales.filter(x=>x.date===today && x.shop===shopName);
+  const employeeData=shopData.filter(x=>(x.employee||"")===employeeName);
+  const sum=(arr,method)=>arr.filter(x=>x.payment===method).reduce((a,x)=>a+(Number(x.amount)||0),0);
+  empShopBills.textContent=shopData.length;
+  empShopSales.textContent=shopData.reduce((a,x)=>a+(Number(x.amount)||0),0);
+  empShopCash.textContent=sum(shopData,"नकद");
+  empShopUpi.textContent=sum(shopData,"UPI");
+  empShopCredit.textContent=sum(shopData,"उधारी");
+  empShopWinners.textContent=shopData.filter(x=>x.won).length;
+  mySales.textContent=employeeData.reduce((a,x)=>a+(Number(x.amount)||0),0);
+  myBills.textContent=employeeData.length;
+  renderManagerCredit();
+  renderProductSummary(managerProductSummary,shopName,todayISO());
+}
+
+function getOfferValue(name){
+  const text=String(name||"");
+  const m=text.match(/₹\s*([0-9]+(?:\.[0-9]+)?)/);
+  if(m) return Number(m[1])||0;
+  const p=products.find(x=>String(x[0]).trim()===text.trim());
+  return p ? (Number(p[2])||0) : 0;
+}
+function winnerPrizeValue(x){
+  if(!x || !x.won) return 0;
+  if(Number.isFinite(Number(x.prizeValue))) return Number(x.prizeValue)||0;
+  return getOfferValue(x.result||x.selected||"");
+}
+
+function updateStats(){
+  const today=new Date().toLocaleDateString("hi-IN");
+  const todayData=sales.filter(x=>x.date===today);
+  const totalFor=m=>todayData.filter(x=>x.payment===m).reduce((a,x)=>a+(Number(x.amount)||0),0);
+  todayBills.textContent=todayData.length;
+  todaySales.textContent=todayData.reduce((a,x)=>a+(Number(x.amount)||0),0);
+  const winnerRows=todayData.filter(x=>x.won);
+  const winnerValue=winnerRows.reduce((a,x)=>a+winnerPrizeValue(x),0);
+  todayWinners.textContent=winnerRows.length;
+  todayWinnerValue.textContent=winnerValue;
+  todayOffers.textContent=todayData.length;
+  cashTotal.textContent=totalFor("नकद");
+  upiTotal.textContent=totalFor("UPI");
+  creditTotal.textContent=totalFor("उधारी");
+  outstandingTotal.textContent=allOutstanding().reduce((a,x)=>a+x.balance,0);
+
+  const shops=["दुकान 1 — अनोखी अपनी दुकान","दुकान 2","दुकान 3","दुकान 4","दुकान 5","दुकान 6","दुकान 7","दुकान 8","दुकान 9","दुकान 10"];
+  let grandBills=0,grandSales=0,grandCash=0,grandUpi=0,grandCredit=0,grandWinners=0,grandWinnerValue=0;
+  shopReport.innerHTML=shops.map(name=>{
+    const d=todayData.filter(x=>x.shop===name);
+    const total=d.reduce((a,x)=>a+(Number(x.amount)||0),0);
+    const sum=m=>d.filter(x=>x.payment===m).reduce((a,x)=>a+(Number(x.amount)||0),0);
+    const cash=sum("नकद"),upi=sum("UPI"),credit=sum("उधारी"),winners=d.filter(x=>x.won).length,winnerValue=d.reduce((a,x)=>a+winnerPrizeValue(x),0);
+    grandBills+=d.length;grandSales+=total;grandCash+=cash;grandUpi+=upi;grandCredit+=credit;grandWinners+=winners;grandWinnerValue+=winnerValue;
+    return "<tr><td>"+esc(name)+"</td><td>"+d.length+"</td><td><b>₹"+total+"</b></td><td>₹"+cash+"</td><td>₹"+upi+"</td><td>₹"+credit+"</td><td>"+winners+"</td><td>₹"+winnerValue+"</td><td><b>₹"+total+"</b></td></tr>";
+  }).join("");
+  shopGrandTotal.innerHTML="<tr style='font-weight:900;background:#e9f6ec'><td>सभी दुकानों का कुल</td><td>"+grandBills+"</td><td>₹"+grandSales+"</td><td>₹"+grandCash+"</td><td>₹"+grandUpi+"</td><td>₹"+grandCredit+"</td><td>"+grandWinners+"</td><td>₹"+grandWinnerValue+"</td><td>₹"+grandSales+"</td></tr>";
+  const shopsForReport=["दुकान 1 — अनोखी अपनी दुकान","दुकान 2","दुकान 3","दुकान 4","दुकान 5","दुकान 6","दुकान 7","दुकान 8","दुकान 9","दुकान 10"];
+  productReportShop.innerHTML='<option value="__ALL__">सभी दुकानें</option>'+shopsForReport.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
+  if(!productReportDate.value) productReportDate.value=isoToDisplayDate(todayISO());
+  refreshProductReport();
+  const shopsForMonthly=["दुकान 1 — अनोखी अपनी दुकान","दुकान 2","दुकान 3","दुकान 4","दुकान 5","दुकान 6","दुकान 7","दुकान 8","दुकान 9","दुकान 10"];
+  const oldMonthlyShop=monthlyReportShop.value;
+  monthlyReportShop.innerHTML='<option value="__ALL__">सभी दुकानें</option>'+shopsForMonthly.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
+  monthlyReportShop.value=shopsForMonthly.includes(oldMonthlyShop)?oldMonthlyShop:"__ALL__";
+  if(!monthlyReportMonth.value) monthlyReportMonth.value=todayISO().slice(0,7);
+  renderMonthlyReport();
+  const outstanding=allOutstanding();
+  ownerCreditSummary.innerHTML=outstanding.length?outstanding.map(a=>`<div class="line"><span>👤 ${esc(a.name)}${a.phone?" • "+esc(a.phone):""} — ${esc(a.shop||"")}</span><b>बाकी ₹${a.balance}</b></div>`).join("")+`<div class="notice" style="margin-top:8px"><b>कुल बाकी उधारी: ₹${outstanding.reduce((a,x)=>a+x.balance,0)}</b></div>`:"अभी कोई बाकी उधारी नहीं है।";
+  if(!sales.length){salesSummary.textContent="अभी कोई बिक्री दर्ज नहीं हुई।";return}
+  salesSummary.innerHTML=sales.slice(-8).reverse().map(x=>"🧾 "+esc(x.time||"")+" — "+esc(x.shop||"")+" — ₹"+(Number(x.amount)||0)+" — "+esc(x.employee||"")+" — "+esc(x.payment||"")+" — परिणाम: "+esc(x.result||"")).join("<br>");
+}
+
+function confirmTwice(message){
+  if(!companyUnlocked){alert("पहले Tumvan कंपनी में लॉगिन करें।");return false}
+  if(!confirm(message)) return false;
+  if(!confirm("⚠️ अंतिम पुष्टि: यह डेटा हटने के बाद वापस नहीं आएगा। क्या आप सच में आगे बढ़ना चाहते हैं?")) return false;
+  return true;
+}
+function setClearStatus(msg){ clearDataStatus.textContent=msg; }
+function clearTodaySalesData(){
+  if(!confirmTwice("आज की सभी दुकानों की बिक्री हटाई जाएगी। क्या आप आज की बिक्री साफ करना चाहते हैं?")) return;
+  const today=todayISO();
+  sales=sales.filter(x=>(x.dateISO||"")!==today);
+  save(SALES_KEY,sales);
+  setClearStatus("✅ आज की बिक्री साफ कर दी गई।"); renderOwner();
+}
+function clearSelectedShopSalesData(){
+  if(!companyUnlocked){alert("पहले Tumvan कंपनी में लॉगिन करें।");return}
+  const names=["दुकान 1 — अनोखी अपनी दुकान","दुकान 2","दुकान 3","दुकान 4","दुकान 5","दुकान 6","दुकान 7","दुकान 8","दुकान 9","दुकान 10"];
+  const choice=prompt("किस दुकान की पूरी बिक्री साफ करनी है? 1 से 10 में दुकान नंबर लिखें।\n\n"+names.map((n,i)=>(i+1)+". "+n).join("\n"));
+  if(choice===null) return;
+  const n=Number(choice);
+  if(!Number.isInteger(n)||n<1||n>10){alert("कृपया 1 से 10 के बीच दुकान नंबर दें।");return}
+  const shopName=names[n-1];
+  if(!confirmTwice(shopName+" की पूरी बिक्री हटाई जाएगी। क्या आप इसे साफ करना चाहते हैं?")) return;
+  sales=sales.filter(x=>x.shop!==shopName);
+  save(SALES_KEY,sales);
+  setClearStatus("✅ "+shopName+" की बिक्री साफ कर दी गई।"); renderOwner();
+}
+function clearAllSalesData(){
+  if(!confirmTwice("सभी 10 दुकानों की पूरी बिक्री हटाई जाएगी। क्या आप सभी बिक्री साफ करना चाहते हैं?")) return;
+  sales=[]; save(SALES_KEY,sales);
+  setClearStatus("✅ सभी दुकानों की बिक्री साफ कर दी गई।"); renderOwner();
+}
+function clearCreditDataAll(){
+  if(!confirmTwice("सभी उधारी और उधारी-वापसी का रिकॉर्ड हटाया जाएगा। क्या आप उधारी डेटा साफ करना चाहते हैं?")) return;
+  sales=sales.filter(x=>x.payment!=="उधारी");
+  creditRepayments=[];
+  save(SALES_KEY,sales); save(CREDIT_REPAY_KEY,creditRepayments);
+  setClearStatus("✅ उधारी का डेटा साफ कर दिया गया।"); renderOwner();
+}
+function resetStockData(){
+  if(!confirmTwice("सभी सामान का वर्तमान स्टॉक 0 कर दिया जाएगा। कीमतें और सामान के नाम नहीं हटेंगे। क्या आप स्टॉक रीसेट करना चाहते हैं?")) return;
+  products=products.map(p=>[p[0],p[1],p[2],0]);
+  save(PRODUCT_KEY,products);
+  renderProductEditor(); renderProducts();
+  setClearStatus("✅ सभी सामान का स्टॉक 0 कर दिया गया।");
+}
+function resetWholeSystemData(){
+  if(!confirmTwice("पूरा स्थानीय सिस्टम डेटा नया किया जाएगा: बिक्री, उधारी वापसी, उत्पाद/स्टॉक और ऑफर की कंपनी सेटिंग्स डिफॉल्ट पर जाएँगी। दुकान-मैनेजर आवंटन भी डिफॉल्ट पर लौटेंगे। क्या आप पूरा सिस्टम नया करना चाहते हैं?")) return;
+  sales=[]; creditRepayments=[]; products=clone(DEFAULT_PRODUCTS); offers=clone(DEFAULT_OFFERS);
+  assignments=Array.from({length:10},(_,i)=>({shop:"दुकान "+(i+1)+(i===0?" — अनोखी अपनी दुकान":""),employee:i===0?"मैनेजर 1":"",code:i===0?"111111":""}));
+  save(SALES_KEY,sales); save(CREDIT_REPAY_KEY,creditRepayments); save(PRODUCT_KEY,products); save(OFFER_KEY,offers); save(COMPANY_KEY,assignments);
+  localStorage.removeItem("tumvan_active_shop_index");
+  setClearStatus("✅ पूरा सिस्टम नया कर दिया गया।");
+  refreshAssignmentUI(); renderProductEditor(); renderOfferEditor(); renderProducts(); renderOffers(); renderOwner();
+}
+clearTodaySales.addEventListener("click",clearTodaySalesData);
+clearShopSales.addEventListener("click",clearSelectedShopSalesData);
+clearAllSales.addEventListener("click",clearAllSalesData);
+clearCreditData.addEventListener("click",clearCreditDataAll);
+resetStock.addEventListener("click",resetStockData);
+resetWholeSystem.addEventListener("click",resetWholeSystemData);
+
+monthlyReportMonth.addEventListener("change",renderMonthlyReport);
+monthlyReportShop.addEventListener("change",renderMonthlyReport);
+
+recordCreditRepayment.addEventListener("click",()=>{
+  const key=creditCustomerSelect.value,amount=Math.floor(Number(creditRepayAmount.value)||0);
+  if(!key){alert("पहले ग्राहक चुनें।");return}
+  if(amount<=0){alert("वापस मिली राशि लिखें।");return}
+  const account=getCreditAccounts(shop.value,todayISO()).find(a=>a.key===key);
+  if(!account){alert("ग्राहक की उधारी नहीं मिली।");return}
+  if(amount>account.balance){alert("वापसी की राशि बाकी उधारी से अधिक नहीं हो सकती। बाकी ₹"+account.balance+" है।");return}
+  creditRepayments.push({date:new Date().toLocaleDateString("hi-IN"),dateISO:todayISO(),time:new Date().toLocaleTimeString("hi-IN",{hour:"2-digit",minute:"2-digit"}),shop:shop.value,employee:employee.value.trim()||"मैनेजर",customer:account.name,phone:account.phone,amount});
+  save(CREDIT_REPAY_KEY,creditRepayments);
+  creditRepayAmount.value="";renderManagerCredit();updateStats();alert("✅ उधारी वापसी दर्ज हो गई।");
+});
+productReportDate.addEventListener("change",()=>{
+  const iso=displayDateToISO(productReportDate.value);
+  if(iso) refreshProductReport();
+  else if(productReportDate.value.trim()) alert("कृपया तारीख DD/MM/YYYY में लिखें, जैसे 01/10/2026");
+});
+productReportShop.addEventListener("change",refreshProductReport);
+
+// शुरुआती लॉगिन स्क्रीन को IIFE के बाहर भी सुरक्षित रूप से काम कराने के लिए
+window.tumvanGetAssigned = getAssigned;
+window.tumvanRefreshAssignmentUI = refreshAssignmentUI;
+window.tumvanShow = show;
+window.tumvanManagerUnlock = function(){ companyUnlocked=false; employeeUnlocked=true; offerUnlocked=false; offerConsumed=false; paymentConfirmed=false; currentBillId=""; selectedOffer=""; refreshAssignmentUI(); renderOffers(); show("sale"); };
+window.tumvanCompanyUnlock = function(){ companyUnlocked=true; employeeUnlocked=true; refreshAssignmentUI(); show("owner"); };
+
+productReportDate.value=isoToDisplayDate(todayISO());
+renderProducts();
+renderCart();
+renderOffers();
+drawWheel();
+updateEmployeeDashboard();
+updateStats();
+})();
+</script>
+
+<div id="loginGate" style="position:fixed;inset:0;background:rgba(255,255,255,.97);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px">
+<div class="card" style="width:min(430px,100%);text-align:center">
+<h2>🔐 अनोखी अपनी दुकान</h2><p class="small">दुकान नंबर और दुकान मैनेजर केवल <b>Tumvan कंपनी</b> द्वारा आवंटित किए जाएंगे।</p>
+<button id="gateEmployee" class="green" style="width:100%;margin-top:8px" type="button">👨‍💼 दुकान मैनेजर लॉगिन</button>
+<button id="gateTumvan" class="tab" style="width:100%;margin-top:8px" type="button">🔐 Tumvan कंपनी</button>
+<div class="small" style="margin-top:10px">Tumvan कंपनी और दुकान मैनेजर का प्रवेश अलग-अलग सुरक्षित है।</div>
+</div></div>
+<div id="managerLoginBox" style="position:fixed;inset:0;background:rgba(255,255,255,.98);z-index:10000;display:none;align-items:center;justify-content:center;padding:20px">
+  <div class="card" style="width:min(430px,100%);text-align:center">
+    <h2>🔐 दुकान मैनेजर लॉगिन</h2>
+    <div id="managerInfo" class="notice" style="margin:12px 0"></div>
+    <label style="text-align:left;display:block;font-weight:900">लॉगिन कोड
+      <input id="managerLoginCode" type="password" inputmode="numeric" maxlength="6" placeholder="Tumvan द्वारा दिया गया कोड" style="font-size:22px;text-align:center;letter-spacing:5px">
+    </label>
+    <button id="managerLoginBtn" class="green" style="width:100%;margin-top:12px" type="button">✅ लॉगिन करें</button>
+    <button id="managerBackBtn" class="tab" style="width:100%;margin-top:8px" type="button">↩️ वापस जाएँ</button>
+  </div>
+</div>
+<script>
+// शुरुआती लॉक स्क्रीन — मैनेजर लॉगिन को मुख्य सिस्टम से सुरक्षित रूप से जोड़ा गया है।
+const loginGate = document.getElementById("loginGate");
+const gateEmployee = document.getElementById("gateEmployee");
+const gateTumvan = document.getElementById("gateTumvan");
+const managerLoginBox = document.getElementById("managerLoginBox");
+const managerInfo = document.getElementById("managerInfo");
+const managerLoginCode = document.getElementById("managerLoginCode");
+const managerLoginBtn = document.getElementById("managerLoginBtn");
+const managerBackBtn = document.getElementById("managerBackBtn");
+
+function gateAssignments(){
+  const fallback=Array.from({length:10},(_,i)=>({
+    shop:"दुकान "+(i+1)+(i===0?" — अनोखी अपनी दुकान":""),
+    employee:i===0?"मैनेजर 1":"", code:i===0?"111111":""
+  }));
+  try{
+    const raw=localStorage.getItem("anokhi_company_assignments_v1");
+    const a=raw?JSON.parse(raw):fallback;
+    if(!Array.isArray(a)) return fallback;
+    a[0]=a[0]||fallback[0];
+    if(!a[0].employee) a[0].employee="मैनेजर 1";
+    if(!a[0].code) a[0].code="111111";
+    if(!a[0].shop) a[0].shop="दुकान 1 — अनोखी अपनी दुकान";
+    localStorage.setItem("anokhi_company_assignments_v1",JSON.stringify(a));
+    return a;
+  }catch(e){ return fallback; }
+}
+
+gateEmployee.addEventListener("click",function(){
+  const assignments=gateAssignments();
+  const assigned=assignments.find(a=>a && a.employee && a.code);
+  if(!assigned){
+    alert("🔒 अभी किसी दुकान पर दुकान मैनेजर आवंटित नहीं है।\nपहले Tumvan कंपनी से दुकान और मैनेजर आवंटित करवाएँ।");
+    return;
+  }
+  managerInfo.innerHTML=`🏪 <b>दुकान मैनेजर लॉगिन</b><br><span class="small">Tumvan कंपनी द्वारा दिया गया 4–6 अंकों का लॉगिन कोड डालें।\nसही कोड के बाद आपकी अपनी आवंटित दुकान खुलेगी।</span>`;
+  managerLoginCode.value="";
+  loginGate.style.display="none";
+  managerLoginBox.style.display="flex";
+  setTimeout(()=>managerLoginCode.focus(),100);
+});
+
+managerLoginBtn.addEventListener("click",function(){
+  const assignments=gateAssignments();
+  const entered=String(managerLoginCode.value||"").trim();
+  const idx=assignments.findIndex(a=>a && a.employee && a.code && String(a.code).trim()===entered);
+  if(idx>=0){
+    localStorage.setItem("tumvan_active_shop_index",String(idx));
+    managerLoginBox.style.display="none";
+    loginGate.style.display="none";
+    if(window.tumvanManagerUnlock) window.tumvanManagerUnlock();
+  }else{
+    alert("❌ गलत दुकान मैनेजर लॉगिन कोड।\nTumvan कंपनी द्वारा दिया गया कोड डालें।");
+    managerLoginCode.value="";
+    managerLoginCode.focus();
+  }
+});
+
+managerLoginCode.addEventListener("keydown",function(e){if(e.key==="Enter") managerLoginBtn.click();});
+managerBackBtn.addEventListener("click",function(){managerLoginBox.style.display="none";loginGate.style.display="flex";});
+
+gateTumvan.addEventListener("click",function(){
+  const pass=prompt("🔐 Tumvan कंपनी का 6 अंकों का पासवर्ड डालें");
+  if(pass === "123456"){
+    loginGate.style.display="none";
+    if(window.tumvanCompanyUnlock) window.tumvanCompanyUnlock();
+  }else if(pass !== null){
+    alert("❌ गलत पासवर्ड। Tumvan कंपनी पैनल नहीं खुला।");
+  }
+});
+</script>
+<script>
+(function(){
+  "use strict";
+  const CK="tumvan_cloud_config_v1";
+  const DEFAULT_TUMVAN_FIREBASE_CONFIG={
+    apiKey:"AIzaSyDo87eqZmevPKyYvZ5pnMJwDxFnWHoeMhU",
+    authDomain:"tumvan-8a967.firebaseapp.com",
+    projectId:"tumvan-8a967",
+    appId:"1:845420959373:web:2df120124eaa3c0a73b4c4"
+  };
+  const $c=id=>document.getElementById(id);
+  const api=$c("cloudApiKey"), authDomain=$c("cloudAuthDomain"), projectId=$c("cloudProjectId"), appId=$c("cloudAppId");
+  const status=$c("cloudStatus");
+  const cfg=()=>{try{return JSON.parse(localStorage.getItem(CK)||"null")}catch(e){return null}};
+  const setStatus=(t,ok)=>{if(status){status.textContent=t;status.style.color=ok?"#176b35":"#7a3b00"}};
+  function fill(){
+    let c=cfg();
+    if(!c){
+      c=DEFAULT_TUMVAN_FIREBASE_CONFIG;
+      localStorage.setItem(CK,JSON.stringify(c));
+    }
+    if(api)api.value=c.apiKey||"";
+    if(authDomain)authDomain.value=c.authDomain||"";
+    if(projectId)projectId.value=c.projectId||"";
+    if(appId)appId.value=c.appId||"";
+    if(c.projectId)setStatus("☁️ Tumvan Firebase तैयार है। अब ‘अभी Sync करें’ दबाकर Cloud Sync शुरू करें।",true);
+  }
+  function getData(){
+    const keys=["anokhi_simple_products_v4","anokhi_simple_offers_v4","anokhi_simple_sales_v4","anokhi_credit_repayments_v1","anokhi_company_assignments_v1"];
+    const out={}; keys.forEach(k=>{try{out[k]=JSON.parse(localStorage.getItem(k)||"[]")}catch(e){out[k]=[]}}); return out;
+  }
+  async function sync(){
+    const c=cfg();
+    if(!c || !c.apiKey || !c.projectId || !c.appId || !c.authDomain){setStatus("⚠️ पहले Firebase Cloud की चारों मुख्य जानकारी भरकर सेव करें।",false);return;}
+    if(!navigator.onLine){setStatus("📴 इंटरनेट नहीं है। डेटा मोबाइल में सुरक्षित है; इंटरनेट आते ही फिर Sync कर सकते हैं।",false);return;}
+    try{
+      if(!window.firebase){throw new Error("Cloud library लोड नहीं हुई।")}
+      let app;
+      try{app=firebase.app("tumvan")}catch(e){app=firebase.initializeApp({apiKey:c.apiKey,authDomain:c.authDomain,projectId:c.projectId,appId:c.appId},"tumvan")}
+      const auth=app.auth();
+      if(!auth.currentUser) await auth.signInAnonymously();
+      const db=app.firestore();
+      const data=getData();
+      const now=new Date().toISOString();
+      const root=db.collection("tumvanNetwork").doc("master");
+      // Small settings are stored together; sales/repayments are chunked to avoid oversized documents.
+      await root.set({products:data.anokhi_simple_products_v4,offers:data.anokhi_simple_offers_v4,assignments:data.anokhi_company_assignments_v1,updatedAt:now},{merge:true});
+      const chunk=(arr,n)=>{const r=[];for(let i=0;i<arr.length;i+=n)r.push(arr.slice(i,i+n));return r};
+      const salesChunks=chunk(data.anokhi_simple_sales_v4,150);
+      for(let i=0;i<salesChunks.length;i++) await root.collection("salesChunks").doc(String(i).padStart(6,"0")).set({items:salesChunks[i],updatedAt:now});
+      const repChunks=chunk(data.anokhi_credit_repayments_v1,150);
+      for(let i=0;i<repChunks.length;i++) await root.collection("repaymentChunks").doc(String(i).padStart(6,"0")).set({items:repChunks[i],updatedAt:now});
+      localStorage.setItem("tumvan_cloud_last_sync",now);
+      setStatus("✅ Cloud Sync सफल: "+new Date(now).toLocaleString("hi-IN"),true);
+    }catch(e){setStatus("❌ Cloud Sync नहीं हुआ: "+(e.message||e),false)}
+  }
+  $c("cloudSaveConfig")?.addEventListener("click",()=>{
+    const c={apiKey:(api?.value||"").trim(),authDomain:(authDomain?.value||"").trim(),projectId:(projectId?.value||"").trim(),appId:(appId?.value||"").trim()};
+    if(!c.apiKey||!c.authDomain||!c.projectId||!c.appId){setStatus("⚠️ API Key, Auth Domain, Project ID और App ID चारों भरें।",false);return;}
+    localStorage.setItem(CK,JSON.stringify(c));setStatus("☁️ Cloud सेटिंग सेव हो गई। अब 'अभी Sync करें' दबा सकते हैं।",true);
+  });
+  window.tumvanCloudSync=sync;
+  window.tumvanCloudSyncNow=async function(){
+    setStatus("⏳ Cloud Sync शुरू हो रहा है...",true);
+    await sync();
+    return false;
+  };
+  $c("cloudSyncNow")?.addEventListener("click",function(e){e.preventDefault();window.tumvanCloudSyncNow();});
+  window.addEventListener("online",()=>{if(cfg()) sync()});
+  fill();
+})();
+</script>
+<section id="tumvanCloud10Shop" style="margin:24px 0;padding:18px;border:2px solid #198754;border-radius:16px;background:#f5fff9;">
+  <h2 style="margin-top:0;">☁️ Tumvan Cloud — 10 दुकानों की तैयारी</h2>
+  <p><b>स्थिति:</b> Tumvan Firebase पहले से सेट है। नीचे की जानकारी आपके Tumvan Firebase Project की है।</p>
+  <div style="display:grid;gap:10px;max-width:620px;">
+    <label>Firebase API Key
+      <input id="firebaseApiKey" type="text" placeholder="Firebase Console से API Key" style="width:100%;padding:10px;">
+    </label>
+    <label>Firebase Auth Domain
+      <input id="firebaseAuthDomain" type="text" placeholder="your-project.firebaseapp.com" style="width:100%;padding:10px;">
+    </label>
+    <label>Firebase Project ID
+      <input id="firebaseProjectId" type="text" placeholder="your-project-id" style="width:100%;padding:10px;">
+    </label>
+    <label>Firebase Storage Bucket
+      <input id="firebaseStorageBucket" type="text" placeholder="your-project.appspot.com" style="width:100%;padding:10px;">
+    </label>
+    <label>Firebase App ID
+      <input id="firebaseAppId" type="text" placeholder="1:...:web:..." style="width:100%;padding:10px;">
+    </label>
+    <button type="button" onclick="saveTumvanCloud10Shop()" style="padding:13px;border:0;border-radius:10px;background:#198754;color:white;font-weight:700;">
+      ☁️ Cloud सेटिंग सेव करें
+    </button>
+    <div id="tumvanCloudStatus" style="font-weight:700;">Cloud अभी कनेक्ट नहीं है।</div>
+  </div>
+  <hr>
+  <h3>🏪 10 दुकानों की संरचना</h3>
+  <div id="tumvanTenShops" style="display:grid;gap:7px;"></div>
+</section>
+<script>
+(function(){
+  const KEY='tumvanFirebaseConfig_v1';
+  window.renderTumvanTenShops = function(){
+    const el=document.getElementById('tumvanTenShops');
+    if(!el) return;
+    const names=[];
+    for(let i=1;i<=10;i++) names.push(
+      '<div style="padding:10px;background:white;border:1px solid #ddd;border-radius:8px;">🏪 दुकान '+i+' — Tumvan नेटवर्क</div>'
+    );
+    el.innerHTML=names.join('');
+    const cfg=localStorage.getItem(KEY);
+    const st=document.getElementById('tumvanCloudStatus');
+    if(st) st.textContent=cfg ? '☁️ Tumvan Firebase सेटिंग सेव है।' : 'Cloud अभी कनेक्ट नहीं है।';
+  };
+  window.saveTumvanCloud10Shop = function(){
+    const cfg={
+      apiKey:document.getElementById('firebaseApiKey').value.trim(),
+      authDomain:document.getElementById('firebaseAuthDomain').value.trim(),
+      projectId:document.getElementById('firebaseProjectId').value.trim(),
+      storageBucket:document.getElementById('firebaseStorageBucket').value.trim(),
+      appId:document.getElementById('firebaseAppId').value.trim()
+    };
+    if(!cfg.apiKey || !cfg.authDomain || !cfg.projectId || !cfg.appId){
+      alert('कृपया Firebase की जरूरी जानकारी भरें।');
+      return;
+    }
+    localStorage.setItem(KEY,JSON.stringify(cfg));
+    renderTumvanTenShops();
+    alert('Cloud सेटिंग इस डिवाइस में सेव हो गई है।');
+  };
+  document.addEventListener('DOMContentLoaded',function(){
+    const c={apiKey:'AIzaSyDo87eqZmevPKyYvZ5pnMJwDxFnWHoeMhU',authDomain:'tumvan-8a967.firebaseapp.com',projectId:'tumvan-8a967',appId:'1:845420959373:web:2df120124eaa3c0a73b4c4'};
+    ['firebaseApiKey','firebaseAuthDomain','firebaseProjectId','firebaseAppId'].forEach((id,i)=>{
+      const el=document.getElementById(id); if(!el)return;
+      el.value=[c.apiKey,c.authDomain,c.projectId,c.appId][i];
+    });
+    renderTumvanTenShops();
+  });
+})();
+</script>
+
+</body>
+</html>
