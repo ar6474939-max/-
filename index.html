@@ -1091,13 +1091,20 @@ gateTumvan.addEventListener("click",function(){
       }
     }
   }
-  $c("cloudSaveConfig")?.addEventListener("click",()=>{
-    // Keep the verified Tumvan project as the single source of truth.
-    localStorage.setItem(CK,JSON.stringify(DEFAULT_TUMVAN_FIREBASE_CONFIG));
-    fill();
-    setStatus("☁️ Tumvan Firebase सेटिंग सुरक्षित रूप से सेव हो गई। अब 'अभी Sync करें' दबा सकते हैं।",true);
-  });
-  window.tumvanCloudSync=sync;
+$c("cloudSaveConfig")?.addEventListener("click",()=>{
+  const entered={
+    apiKey:(api?.value||"").trim(),
+    authDomain:(authDomain?.value||"").trim(),
+    projectId:(projectId?.value||"").trim(),
+    appId:(appId?.value||"").trim()
+  };
+  if(!entered.apiKey||!entered.authDomain||!entered.projectId||!entered.appId){
+    setStatus("❌ Firebase की सभी 4 सेटिंग भरना जरूरी है।",false);
+    return;
+  }
+  localStorage.setItem(CK,JSON.stringify(entered));
+  setStatus("☁️ Tumvan Firebase सेटिंग सेव हो गई। अब ‘अभी Sync करें’ दबा सकते हैं।",true);
+});  window.tumvanCloudSync=sync;
   window.tumvanCloudSyncNow=async function(){
     setStatus("⏳ Cloud Sync शुरू हो रहा है...",true);
     await sync();
